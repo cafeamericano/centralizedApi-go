@@ -135,7 +135,7 @@ func addKeyword(w http.ResponseWriter, req *http.Request) {
     log.Println(t.Name)
     
     insertResult, err := keywordsCollection.InsertOne(context.TODO(), t)
-    fmt.Print("Document created.")
+    fmt.Print(insertResult)
 }
 
 // UPDATE A KEYWORD
@@ -152,7 +152,7 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 
 	ctx := context.Background()
 	id, _ := primitive.ObjectIDFromHex(t.id)
-	result, err := keywordsCollection.UpdateOne(
+	updateResult, err := keywordsCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
 		bson.D{
@@ -165,7 +165,7 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Document updated.")
+	fmt.Printf(updateResult)
 }
 
 // DELTETE A KEYWORD
@@ -182,14 +182,14 @@ func deleteKeyword(w http.ResponseWriter, req *http.Request) {
 
 	ctx := context.Background()
 	id, _ := primitive.ObjectIDFromHex(t.id)
-	result, err := keywordsCollection.DeleteOne(
+	deleteResult, err := keywordsCollection.DeleteOne(
 		ctx,
 		bson.M{"_id": id},
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Document deleted.")
+	fmt.Printf(deleteResult)
 }
 
 // Define main function
