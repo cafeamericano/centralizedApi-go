@@ -25,7 +25,8 @@ import (
 type ObjectID string
 
 type Keyword struct {
-    ID      string            	`json:"_id"`
+	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
+	id      string  			`json:"_id"`
     Name    string              `json:"name"`
     Type    string              `json:"type"`
 }
@@ -56,12 +57,20 @@ func logErrorIfOccurs(err error) {
 
 func formatResponseHeader(w http.ResponseWriter) {
     w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 }
 
 // Define data gathering functions
 
+func sendHome(w http.ResponseWriter, req *http.Request) {
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+    fmt.Fprint(w, "<h2>Centralized API - Go</h2><p>Version 1.0</p><p>The server is listening for requests.</p>")
+    return
+}
+
 func getKeyword(w http.ResponseWriter, req *http.Request) {
+    formatResponseHeader(w)
 
 	decoder := json.NewDecoder(req.Body)
     var t Keyword
@@ -70,12 +79,11 @@ func getKeyword(w http.ResponseWriter, req *http.Request) {
         panic(err)
 	}
 
-
 	findOptions := options.Find()
     // findOptions.SetLimit(100)
-	id, _ := primitive.ObjectIDFromHex(t.ID)
 
-	cursor, err := (keywordsCollection).Find(context.TODO(), bson.M{"_id": id}, findOptions)
+    cursor, err := (keywordsCollection).Find(context.TODO(), bson.M{"_id": t.ID}, findOptions)
+    logErrorIfOccurs(err)
 	
     var results []*Keyword
     for cursor.Next(context.TODO()) { // Iterate over cursor and decode each document
@@ -86,12 +94,13 @@ func getKeyword(w http.ResponseWriter, req *http.Request) {
     }
 	cursor.Close(context.TODO())
 	
-    
-    formatResponseHeader(w)
     json.NewEncoder(w).Encode(results)
+	
 }
 
 func getKeywords(w http.ResponseWriter, r *http.Request) {
+	formatResponseHeader(w)
+
     findOptions := options.Find()
     // findOptions.SetLimit(100)
 
@@ -107,13 +116,12 @@ func getKeywords(w http.ResponseWriter, r *http.Request) {
     }
     cursor.Close(context.TODO())
     
-    formatResponseHeader(w)
     json.NewEncoder(w).Encode(results)
 }
 
     
 func addKeyword(w http.ResponseWriter, req *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
+    formatResponseHeader(w)
 
     decoder := json.NewDecoder(req.Body)
     var t Keyword
@@ -125,10 +133,10 @@ func addKeyword(w http.ResponseWriter, req *http.Request) {
     
     insertResult, err := keywordsCollection.InsertOne(context.TODO(), t)
     fmt.Print(insertResult)
-    // json.NewEncoder(w).Encode(newRecord)
 }
 
 func updateKeyword(w http.ResponseWriter, req *http.Request) {
+    formatResponseHeader(w)
 
 	decoder := json.NewDecoder(req.Body)
     var t Keyword
@@ -138,7 +146,7 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ctx := context.Background()
-	id, _ := primitive.ObjectIDFromHex(t.ID)
+	id, _ := primitive.ObjectIDFromHex(t.id)
 	result, err := keywordsCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
@@ -156,7 +164,7 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 }
 
 func deleteKeyword(w http.ResponseWriter, req *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
+    formatResponseHeader(w)
 
 	decoder := json.NewDecoder(req.Body)
     var t Keyword
@@ -166,7 +174,7 @@ func deleteKeyword(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ctx := context.Background()
-	id, _ := primitive.ObjectIDFromHex(t.ID)
+	id, _ := primitive.ObjectIDFromHex(t.id)
 	result, err := keywordsCollection.DeleteOne(
 		ctx,
 		bson.M{"_id": id},
@@ -183,11 +191,12 @@ func main() {
 
     router := mux.NewRouter()
 	
-	router.HandleFunc("/AppGalleryLite/api/keyword", getKeyword).Methods("POST")
-    router.HandleFunc("/AppGalleryLite/api/keywords", getKeywords).Methods("GET")
-    router.HandleFunc("/AppGalleryLite/api/keywords", addKeyword).Methods("POST")
-    router.HandleFunc("/AppGalleryLite/api/keywords", updateKeyword).Methods("PUT")
-    router.HandleFunc("/AppGalleryLite/api/keywords", deleteKeyword).Methods("DELETE")
+	router.HandleFunc("/", sendHome).Methods("GET")
+	router.HandleFunc("/KeywordFactory/api/keyword", getKeyword).Methods("POST")
+    router.HandleFunc("/KeywordFactory/api/keywords", getKeywords).Methods("GET")
+    router.HandleFunc("/KeywordFactory/api/keywords", addKeyword).Methods("POST")
+    router.HandleFunc("/KeywordFactory/api/keywords", updateKeyword).Methods("PUT")
+    router.HandleFunc("/KeywordFactory/api/keywords", deleteKeyword).Methods("DELETE")
     
     http.ListenAndServe(":8080", router)
 
