@@ -12,21 +12,29 @@ import (
     "os"
     "fmt"
 
-    "github.com/gorilla/mux"
+    "github.com/gorilla/mux" // go get -u github.com/gorilla/mux
 
-    "go.mongodb.org/mongo-driver/bson"
+    "github.com/gorilla/handlers" //go get github.com/gorilla/handlers
+
+    "go.mongodb.org/mongo-driver/bson" // go get go.mongodb.org/mongo-driver
     "go.mongodb.org/mongo-driver/bson/primitive"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+	
 )
 
 // Define custom types
 
 type ObjectID string
 
-type Keyword struct {
+type KeywordInCollection struct {
 	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
-	id      string  			`json:"_id"`
+    Name    string              `json:"name"`
+    Type    string              `json:"type"`
+}
+
+type KeywordFromRequest struct {
+	ID    	string  			`json:"_id"`
     Name    string              `json:"name"`
     Type    string              `json:"type"`
 }
@@ -82,12 +90,12 @@ func getAllKeywords(w http.ResponseWriter, req *http.Request) {
     cursor, err := (keywordsCollection).Find(context.TODO(), bson.D{{}}, findOptions)
     logErrorIfOccurs(err)
 
-    var results []*Keyword
+    var results []*KeywordInCollection
     for cursor.Next(context.TODO()) { // Iterate over cursor and decode each document
-        var elem Keyword
-        err := cursor.Decode(&elem)
+        var item KeywordInCollection
+        err := cursor.Decode(&item)
         logErrorIfOccurs(err)
-        results = append(results, &elem)
+        results = append(results, &item)
     }
     cursor.Close(context.TODO())
     
@@ -108,12 +116,12 @@ func getKeyword(w http.ResponseWriter, req *http.Request) {
     cursor, err := (keywordsCollection).Find(context.TODO(), bson.M{"_id": id}, findOptions)
     logErrorIfOccurs(err)
 	
-    var results []*Keyword
+    var results []*KeywordInCollection
     for cursor.Next(context.TODO()) { // Iterate over cursor and decode each document
-        var elem Keyword
-        err := cursor.Decode(&elem)
+        var item KeywordInCollection
+        err := cursor.Decode(&item)
         logErrorIfOccurs(err)
-        results = append(results, &elem)
+        results = append(results, &item)
     }
 	cursor.Close(context.TODO())
 	
@@ -124,18 +132,18 @@ func getKeyword(w http.ResponseWriter, req *http.Request) {
 // CREATE A NEW KEYWORD
 
 func addKeyword(w http.ResponseWriter, req *http.Request) {
+
     formatResponseHeader(w)
 
     decoder := json.NewDecoder(req.Body)
-    var t Keyword
-    err := decoder.Decode(&t)
+    var item KeywordInCollection
+    err := decoder.Decode(&item)
     if err != nil {
         panic(err)
     }
-    log.Println(t.Name)
     
-    insertResult, err := keywordsCollection.InsertOne(context.TODO(), t)
-    fmt.Print(insertResult)
+    result, err := keywordsCollection.InsertOne(context.TODO(), item)
+	fmt.Printf("Added document \n", result)
 }
 
 // UPDATE A KEYWORD
@@ -144,52 +152,51 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
     formatResponseHeader(w)
 
 	decoder := json.NewDecoder(req.Body)
-    var t Keyword
-    err := decoder.Decode(&t)
+    var item KeywordFromRequest
+    err := decoder.Decode(&item)
     if err != nil {
         panic(err)
 	}
 
 	ctx := context.Background()
-	id, _ := primitive.ObjectIDFromHex(t.id)
-	updateResult, err := keywordsCollection.UpdateOne(
+	id, _ := primitive.ObjectIDFromHex(item.ID)
+	result, err := keywordsCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
 		bson.D{
 			{"$set", bson.D{
-				{"name", &t.Name},
-				{"type", &t.Type},
+				{"name", &item.Name},
+				{"type", &item.Type},
 			}},
 		},
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf(updateResult)
+	fmt.Printf("Updated %v document(s)\n", result.ModifiedCount)
 }
 
 // DELTETE A KEYWORD
 
 func deleteKeyword(w http.ResponseWriter, req *http.Request) {
+
     formatResponseHeader(w)
 
 	decoder := json.NewDecoder(req.Body)
-    var t Keyword
-    err := decoder.Decode(&t)
-    if err != nil {
-        panic(err)
-	}
+    var item KeywordFromRequest
+    err := decoder.Decode(&item)
+    logErrorIfOccurs(err)
 
 	ctx := context.Background()
-	id, _ := primitive.ObjectIDFromHex(t.id)
-	deleteResult, err := keywordsCollection.DeleteOne(
+	id, _ := primitive.ObjectIDFromHex(item.ID)
+	result, err := keywordsCollection.DeleteOne(
 		ctx,
 		bson.M{"_id": id},
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf(deleteResult)
+	logErrorIfOccurs(err)
+
+	fmt.Printf("Deleted %v document(s)\n", result.DeletedCount)
+
 }
 
 // Define main function
@@ -207,6 +214,6 @@ func main() {
     router.HandleFunc("/KeywordFactory/api/keyword", updateKeyword).Methods("PUT")
     router.HandleFunc("/KeywordFactory/api/keyword", deleteKeyword).Methods("DELETE")
     
-    http.ListenAndServe(":8080", router)
+    http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}), handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"}), handlers.AllowedOrigins([]string{"*"}))(router))
 
 }
