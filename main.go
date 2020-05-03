@@ -29,14 +29,16 @@ type ObjectID string
 
 type KeywordInCollection struct {
 	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
-    Name    string              `json:"name"`
-    Type    string              `json:"type"`
+    Name    	string              `json:"name"`
+	Type    	string              `json:"type"`
+	IsActive	bool				`json:"isActive"`
 }
 
 type KeywordFromRequest struct {
-	ID    	string  			`json:"_id"`
-    Name    string              `json:"name"`
-    Type    string              `json:"type"`
+	ID    		string  			`json:"_id"`
+    Name    	string              `json:"name"`
+	Type    	string              `json:"type"`
+	IsActive	bool				`json:"isActive"`
 }
 
 // Initialize collection variables
@@ -167,6 +169,7 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 			{"$set", bson.D{
 				{"name", &item.Name},
 				{"type", &item.Type},
+				{"isActive", &item.IsActive},
 			}},
 		},
 	)
