@@ -28,17 +28,19 @@ import (
 type ObjectID string
 
 type KeywordInCollection struct {
-	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
-    Name    	string              `json:"name"`
-	Type    	string              `json:"type"`
-	IsActive	bool				`json:"isActive"`
+	ID      			primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
+    Name    			string              `json:"name"`
+	Type    			string              `json:"type"`
+	ShowInGallery		bool				`json:"showInGallery"`
+	ShowOnPortfolio		bool				`json:"showOnPortfolio"`
 }
 
 type KeywordFromRequest struct {
-	ID    		string  			`json:"_id"`
-    Name    	string              `json:"name"`
-	Type    	string              `json:"type"`
-	IsActive	bool				`json:"isActive"`
+	ID    				string  			`json:"_id"`
+    Name    			string              `json:"name"`
+	Type    			string              `json:"type"`
+	ShowInGallery		bool				`json:"showInGallery"`
+	ShowOnPortfolio		bool				`json:"showOnPortfolio"`
 }
 
 // Initialize collection variables
@@ -77,7 +79,7 @@ func formatResponseHeader(w http.ResponseWriter) {
 
 func sendHome(w http.ResponseWriter, req *http.Request) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
-    fmt.Fprint(w, "<h2>Centralized API - Go</h2><p>Version 1.0</p><p>The server is listening for requests.</p>")
+    fmt.Fprint(w, "<h2>Centralized API - Go</h2><p>The server is listening for requests.</p>")
     return
 }
 
@@ -169,7 +171,8 @@ func updateKeyword(w http.ResponseWriter, req *http.Request) {
 			{"$set", bson.D{
 				{"name", &item.Name},
 				{"type", &item.Type},
-				{"isActive", &item.IsActive},
+				{"showInGallery", &item.ShowInGallery},
+				{"showOnPortfolio", &item.ShowOnPortfolio},
 			}},
 		},
 	)
